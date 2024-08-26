@@ -6,7 +6,7 @@ import kotlin.test.assertTrue
 suspend fun <Value, Format> FileSnapshotting<Value, Format>.snapshot(
     value: Value,
     record: Boolean = false,
-    directoryName: String,
+    directoryName: String?,
     fileName: String = "reference",
     diffFileName: String = "diff",
     path: String = "snapshot"
@@ -15,7 +15,7 @@ suspend fun <Value, Format> FileSnapshotting<Value, Format>.snapshot(
     fun file(name: String): File {
         val extension = fileStoring.fileExtension
         val filename = if (extension.isBlank()) name else "$name.$extension"
-        val snapshotDirectory = File(path, directoryName)
+        val snapshotDirectory = if (directoryName != null) File(path, directoryName) else File(path)
 
         if (!snapshotDirectory.exists()) assertTrue(
             snapshotDirectory.mkdirs(),
