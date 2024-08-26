@@ -7,9 +7,6 @@ abstract class JUnitFileSnapshotTest(private val record: Boolean? = null) {
     @get:Rule
     val testName: TestName = TestName()
 
-    private val directoryName
-        get() = this::class.simpleName ?: "FileSnapshotTest"
-
     suspend fun <Value, Format> FileSnapshotting<Value, Format>.snapshot(
         value: Value,
         record: Boolean = false,
