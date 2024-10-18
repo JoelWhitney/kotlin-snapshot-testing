@@ -2,6 +2,9 @@ package com.quickbird.snapshot
 
 import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
+import android.util.Log
+
+private var maximumDeltaE: Double? = null
 
 fun Diffing.Companion.bitmap(
     colorDiffing: Diffing<Color>,
@@ -10,12 +13,19 @@ fun Diffing.Companion.bitmap(
 ) = Diffing<Bitmap> { first, second ->
     val difference = first.differenceTo(second, perceptualTolerance)
 
-    if (difference <= tolerance) null
-    else first.copy(first.config, true).apply {
-        updatePixels { x, y, color ->
-            if (x < second.width && y < second.height)
-                colorDiffing(color, second.getPixel(x, y).color) ?: color
-            else color
+    if (difference <= tolerance) {
+        null
+    } else {
+        var log = "Difference ($difference) is greater than the allotted tolerance ($tolerance)"
+        if (maximumDeltaE != null) log += ", encountered maximum deltaE of $maximumDeltaE over expected $perceptualTolerance"
+        Log.e("Snapshot diffing", log)
+
+        first.copy(first.config, true).apply {
+            updatePixels { x, y, color ->
+                if (x < second.width && y < second.height)
+                    colorDiffing(color, second.getPixel(x, y).color) ?: color
+                else color
+            }
         }
     }
 }
@@ -42,9 +52,10 @@ private fun Bitmap.differenceTo(other: Bitmap, perceptualTolerance: Double): Dou
     val otherPixels = other.pixels
     if (thisPixels.size != otherPixels.size) return 100.0
 
-    val differentPixelCount = thisPixels
-        .zip(otherPixels) { a, b -> a.isSimilar(b, perceptualTolerance) }
-        .count { !it }
+    val deltaEPixels = thisPixels
+        .zip(otherPixels, Color::deltaE)
+    val deltaEDifference = deltaEPixels.count { it < perceptualTolerance }
+    maximumDeltaE = deltaEPixels.maxOrNull() ?: 0.0
 
-    return differentPixelCount.toDouble() / thisPixels.size
+    return deltaEDifference.toDouble() / thisPixels.size
 }
